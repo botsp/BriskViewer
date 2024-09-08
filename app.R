@@ -5,6 +5,8 @@ library(teal.data)
 library(teal.modules.general)
 library(teal.modules.clinical)
 library(sparkline)
+library(readr)  # 用于读取CSV文件
+library(readxl) # 用于读取Excel文件
 
 
 options(shiny.useragg = FALSE)
@@ -23,7 +25,7 @@ header <- tags$span(
 
 footer <- tags$p(style = "font-family: Arial, sans-serif; font-size: 13px;",
                  "This demo app is developed from the NEST Team at Roche/Genentech.
-        For more information, please contact thedeveloper: progsupp89@gmail.com"
+        For more information, please contact the developer: progsupp89@gmail.com"
 )
 app <- init(
   title = build_app_title("TabulationViewer Demo App", nest_logo),
@@ -34,9 +36,17 @@ app <- init(
       ns <- NS(id)
       fluidPage(
         mainPanel(
-          shiny::fileInput(ns("file"), "Upload a file", multiple = TRUE),
+          shiny::fileInput(ns("file"), "Upload a file", multiple = TRUE,
+                           accept = c(".csv", ".xlsx", ".xpt", ".sas7bdat")),
           actionButton(ns("submit"), "Submit"),
           DT::dataTableOutput(ns("preview"))
+        ),
+        fluidRow(
+          column(12,
+                 tags$footer(
+                   'The supported file types for upload include ".csv", ".xlsx", ".xpt", and ".sas7bdat". Please note that do not upload data files with the same name across all types. For example: ["ae.xpt" & "ae.xpt"] or ["dm.xpt" & "dm.sas7bdat"] are invalid.',
+                   style = "text-align: left; padding: 13px;")
+          )
         )
       )
     },
@@ -46,7 +56,21 @@ app <- init(
         data <- eventReactive(input$submit, {
           req(input$file)
           file_names <- tools::file_path_sans_ext(input$file$name)
-          data_list <- lapply(input$file$datapath, read_xpt)
+          # data_list <- lapply(input$file$datapath, read_xpt)
+          file_exts <- tools::file_ext(input$file$name)
+          data_list <- lapply(seq_along(input$file$datapath), function(i) {
+            file_path <- input$file$datapath[i]
+            file_ext <- file_exts[i]
+            switch(
+              file_ext,
+              "csv" = read_csv(file_path),
+              "xlsx" = read_excel(file_path),
+              "xpt" = read_xpt(file_path),
+              "sas7bdat" = read_sas(file_path),
+              stop("Unsupported file type")
+            )
+          })
+          
           
           for (i in seq_along(data_list)) {
             assign(paste0("upload_",file_names[i]), data_list[[i]], envir = .GlobalEnv)
