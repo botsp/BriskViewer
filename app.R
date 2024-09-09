@@ -1,4 +1,3 @@
-
 library(teal)
 library(haven)
 library(teal.data)
