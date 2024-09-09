@@ -5,11 +5,11 @@ library(teal.data)
 library(teal.modules.general)
 library(teal.modules.clinical)
 library(sparkline)
-library(readr)  # 用于读取CSV文件
-library(readxl) # 用于读取Excel文件
-
+library(readr)  # Reading CSV files
+library(readxl) # Reading Excel files
 
 options(shiny.useragg = FALSE)
+options(shiny.maxRequestSize = 120*1024^2)
 ## App header and footer ----
 nest_logo <- "https://raw.githubusercontent.com/insightsengineering/hex-stickers/main/PNG/nest.png"
 
@@ -55,38 +55,29 @@ app <- init(
         
         data <- eventReactive(input$submit, {
           req(input$file)
+          
+          file_paths <- input$file$datapath
           file_names <- tools::file_path_sans_ext(input$file$name)
-          # data_list <- lapply(input$file$datapath, read_xpt)
-          file_exts <- tools::file_ext(input$file$name)
-          data_list <- lapply(seq_along(input$file$datapath), function(i) {
-            file_path <- input$file$datapath[i]
-            file_ext <- file_exts[i]
-            switch(
-              file_ext,
-              "csv" = read_csv(file_path),
-              "xlsx" = read_excel(file_path),
-              "xpt" = read_xpt(file_path),
-              "sas7bdat" = read_sas(file_path),
-              stop("Unsupported file type")
+          td <- teal_data()
+          
+          for (i in seq_along(file_paths)) {
+            td <- within(
+              td, 
+              file_ext=tools::file_ext(file_paths[i]),
+              data_name <- switch(
+                  file_ext,
+                  "csv" = read_csv(data_path),
+                  "xlsx" = read_excel(data_path),
+                  "xpt" = read_xpt(data_path),
+                  "sas7bdat" = read_sas(data_path),
+                  stop("Please ensure that the uploaded file type is valid.")
+                ),
+              data_name = file_names[i], 
+              data_path = file_paths[i]
             )
-          })
-          
-          
-          for (i in seq_along(data_list)) {
-            assign(paste0("upload_",file_names[i]), data_list[[i]], envir = .GlobalEnv)
-          } 
-          
-          td <- within(teal_data(), {
-            data_names <- ls(.GlobalEnv, pattern = "^upload_")
-            for (name in data_names) {
-              assign(sub("^upload_", "", name), get(name, envir = .GlobalEnv))
-            }
-            rm(name)
-            rm(data_names)
-          })
-          datanames(td) <- file_names
+          }
+          datanames(td) <-  file_names
           td
-          
         })
         data
       })
@@ -106,10 +97,8 @@ app <- init(
     ),
     tm_data_table("Data Table"),
     tm_variable_browser("Variable Browser")
-    
-    
   )
-  
 )
 
 shinyApp(app$ui, app$server)
+
