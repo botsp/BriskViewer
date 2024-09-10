@@ -8,7 +8,9 @@ library(readr)  # Reading CSV files
 library(readxl) # Reading Excel files
 
 options(shiny.useragg = FALSE)
+# File size set to 120MB
 options(shiny.maxRequestSize = 120*1024^2)
+########################################################################################
 ## App header and footer ----
 nest_logo <- "https://raw.githubusercontent.com/insightsengineering/hex-stickers/main/PNG/nest.png"
 
@@ -26,6 +28,63 @@ footer <- tags$p(style = "font-family: Arial, sans-serif; font-size: 13px;",
                  "This demo app is developed from the NEST Team at Roche/Genentech.
         For more information, please contact the developer: progsupp89@gmail.com"
 )
+########################################################################################
+# Self-defined function
+#Import sort_key that attached with sas datasets
+import_sort_list <- function(file_path, sheet_name = "Sheet1", column_label = "Column_Name") {
+  # Read the Excel file
+  SortInfo <- read_excel(file_path, sheet = sheet_name)
+  
+  # Filter specific column
+  SortInfo_srt <- subset(SortInfo, namelabel == column_label)
+  
+  # Create an empty list to store vectors
+  vectors_list <- list()
+  
+  # Iterate through each row and create named vectors
+  for (i in 1:nrow(SortInfo_srt)) {
+    row_data <- SortInfo_srt[i, ]
+    memname <- row_data$memname
+    
+    # Extract columns with prefix COL and remove NA values
+    vector_values <- unlist(row_data[grepl("^COL", names(row_data))])
+    vector_values <- vector_values[!is.na(vector_values)]
+    
+    # Store the vector in the list, without keeping column names
+    vectors_list[[memname]] <- unname(vector_values)
+  }
+  
+  # Return the result
+  return(vectors_list)
+}
+
+# To generate join_key objects
+generate_join_keys <- function(sort_list) {
+  # Check if sort_list is "NOT UPLOADED"
+  if (identical(sort_list, "NOT UPLOADED")) {
+    return(join_keys())
+  }
+  # Convert vector names to lowercase for comparison
+  names_lower <- tolower(names(sort_list))
+  
+  # Check if it is adsl(ADaM) or dm(SDTM)
+  center_dataset <- if ("adsl" %in% names_lower) names(sort_list)[which(names_lower == "adsl")] else names(sort_list)[which(names_lower == "dm")]
+  
+  primary_keys <- lapply(names(sort_list), function(name) {
+    do.call(join_key, list(name, keys = sort_list[[name]]))
+  })
+  
+  foreign_keys <- lapply(setdiff(names(sort_list), center_dataset), function(name) {
+    do.call(join_key, list(center_dataset, name, keys = c("STUDYID", "USUBJID")))
+  })
+  
+  all_keys <- c(primary_keys, foreign_keys)
+  
+  do.call(join_keys, all_keys)
+}
+
+########################################################################################
+
 app <- init(
   title = build_app_title("TabulationViewer Demo App", nest_logo),
   header = header,
@@ -59,23 +118,45 @@ app <- init(
           file_names <- tools::file_path_sans_ext(input$file$name)
           td <- teal_data()
           
+          # Target SortInfo file
+          target_file <- "SortInfo"
+          # Find the index of the target file
+          SortInfo_index <- which(file_names == target_file)
+          if (length(SortInfo_index) == 0) {
+            showNotification("The specified file was not uploaded. Summary table won't be applied.", type = "warning")
+            SortInfo_path<-"NOT UPLOADED"
+            SortInfo_list<-"NOT UPLOADED"
+          }
+          else {
+            # Get the path of the target file
+            SortInfo_path <- file_paths[SortInfo_index]
+            
+            # Read the target file using function `import_sort_list`
+            SortInfo_list <- import_sort_list(SortInfo_path)
+          }
+          
           for (i in seq_along(file_paths)) {
+            if (i == SortInfo_path) {
+              next  # Skip the target file
+            }
             td <- within(
               td, 
               file_ext=tools::file_ext(file_paths[i]),
               data_name <- switch(
-                  file_ext,
-                  "csv" = read_csv(data_path),
-                  "xlsx" = read_excel(data_path),
-                  "xpt" = read_xpt(data_path),
-                  "sas7bdat" = read_sas(data_path),
-                  stop("Please ensure that the uploaded file type is valid.")
-                ),
+                file_ext,
+                "csv" = read_csv(data_path),
+                "xlsx" = read_excel(data_path),
+                "xpt" = read_xpt(data_path),
+                "sas7bdat" = read_sas(data_path),
+                stop("Please ensure that the uploaded file type is valid.")
+              ),
               data_name = file_names[i], 
               data_path = file_paths[i]
             )
           }
           datanames(td) <-  file_names
+          # Generate join_key object using function `generate_join_keys`
+          join_keys(td)  <- generate_join_keys(SortInfo_list)
           td
         })
         data
@@ -96,8 +177,8 @@ app <- init(
     ),
     tm_data_table("Data Table"),
     tm_variable_browser("Variable Browser")
+    
   )
 )
 
 shinyApp(app$ui, app$server)
-
