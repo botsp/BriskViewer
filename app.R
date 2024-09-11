@@ -44,7 +44,7 @@ import_sort_list <- function(file_path, sheet_name = "Sheet1", column_label = "C
   # Iterate through each row and create named vectors
   for (i in 1:nrow(SortInfo_srt)) {
     row_data <- SortInfo_srt[i, ]
-    memname <- row_data$memname
+    memname <- toupper(row_data$memname)
     
     # Extract columns with prefix COL and remove NA values
     vector_values <- unlist(row_data[grepl("^COL", names(row_data))])
@@ -53,7 +53,11 @@ import_sort_list <- function(file_path, sheet_name = "Sheet1", column_label = "C
     # Store the vector in the list, without keeping column names
     vectors_list[[memname]] <- unname(vector_values)
   }
-  
+    # Convert the vector values to uppercase
+    vector_values <- toupper(vector_values)
+    
+    # Store the vector in the list, without keeping column names
+    vectors_list[[memname]] <- unname(vector_values)
   # Return the result
   return(vectors_list)
 }
@@ -82,6 +86,12 @@ generate_join_keys <- function(sort_list) {
   
   do.call(join_keys, all_keys)
 }
+
+# cs_arm_var <-
+#   choices_selected(
+#     choices = variable_choices(ADSL, subset = c("ARM")),
+#     selected = "ARM"
+#   )
 
 ########################################################################################
 
@@ -116,10 +126,13 @@ app <- init(
           
           file_paths <- input$file$datapath
           file_names <- tools::file_path_sans_ext(input$file$name)
-          td <- teal_data()
+          file_names <- toupper(file_names)
+
+          td<-teal_data()
           
           # Target SortInfo file
-          target_file <- "SortInfo"
+          target_file <- "SORTINFO"
+          valid_file_names <- file_names[file_names != target_file]
           # Find the index of the target file
           SortInfo_index <- which(file_names == target_file)
           if (length(SortInfo_index) == 0) {
@@ -136,10 +149,10 @@ app <- init(
           }
           
           for (i in seq_along(file_paths)) {
-            if (i == SortInfo_path) {
+            if (file_paths[i] == SortInfo_path) {
               next  # Skip the target file
             }
-            td <- within(
+            td<-within(
               td, 
               file_ext=tools::file_ext(file_paths[i]),
               data_name <- switch(
@@ -154,7 +167,7 @@ app <- init(
               data_path = file_paths[i]
             )
           }
-          datanames(td) <-  file_names
+          datanames(td) <-  valid_file_names
           # Generate join_key object using function `generate_join_keys`
           join_keys(td)  <- generate_join_keys(SortInfo_list)
           td
