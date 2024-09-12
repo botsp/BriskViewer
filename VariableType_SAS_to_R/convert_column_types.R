@@ -31,8 +31,10 @@ convert_column_types <- function(df) {
           next
         }
       }
-      # # If none of the conditions are met, convert to factor
+      # If none of the conditions are met, convert to factor
       df[[col]] <- as.factor(df[[col]])
+      # Add label of each factor column back
+      label(df[[col]]) <- col_label
     }
   }
   
