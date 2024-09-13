@@ -6,6 +6,7 @@ The data produced by `cdisc_data()` has predefined data types, such as setting A
 https://github.com/insightsengineering/teal.modules.clinical/issues/1224
 
 So a transformation needs to be made to the externally imported SDTM/ADAM, adopting a non-conservative principle, that is, all `R type=character` variables/columns, as long as they are not some specific variables, are converted to factor. Which are the "specific variables"? That is, variables that will not undergo categorical analysis, such as `USUBJID`, `AESTDTC`, etc. Here, according to SDTM IG3.3/ADAM IG 3.3, **a rough summary is made**, and this arrangement may be continuously improved.
+***
 ### a rough summary
 For columns of type `character`, convert them to `factor` except for the following conditions:
 
@@ -15,6 +16,18 @@ For columns of type `character`, convert them to `factor` except for the followi
 4. The column name ends with one of the following elements: DTC, DTM, DUR, ENTPT, ORRES, ORRESU, ORNRLO, ORNRHI, STRESC, STRESU, STNRC, STREFC, STTPT.
 5. The column name starts with "COVAL".
 6. The column name starts with "AVALC" or "BASEC" and the label does not contain the word "Category".
-
+ ***
 ## How to make this conversion?
 Write a function, in which the default logic conversion is performed based on that "rough summary", and also provides an option to run if new conditions are used to exclude the conversion to factors.
+***
+13Sep2024: `tm_t_summary()` also requies the `arm_var` cann't has any empty values; This may relates to a complex setting of parentname in `tm_t_summary()`, which need further confirmation.
+https://github.com/insightsengineering/teal.modules.clinical/issues/1225 
+
+So to solve this problem, need more manipulations for data, so adjust the structure of `init()` and move the read_data part to this function, then call this function in `within(teal_data,{}` to process the uploaded data.
+
+
+
+
+
+
+ 
