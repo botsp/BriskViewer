@@ -106,7 +106,9 @@ app <- init(
         mainPanel(
           shiny::fileInput(ns("file"), "Upload a file", multiple = TRUE,
                            accept = c(".csv", ".xlsx", ".xpt", ".sas7bdat")),
+          actionButton(ns("checkButton"), "Check Project Type"),
           actionButton(ns("submit"), "Submit"),
+          # checkboxInput("checkbox", "CDISC Project(Valid SDTM/ADam", value = FALSE),
           DT::dataTableOutput(ns("preview"))
         ),
         fluidRow(
@@ -120,7 +122,34 @@ app <- init(
     },
     server = function(id) {
       moduleServer(id, function(input, output, session) {
+        ns <- session$ns
         
+      
+        # 创建 reactiveValues 存储项目类型
+        check_project <- reactiveValues(projectType = NULL)
+        
+        # 处理项目类型的事件反应
+        observeEvent(input$checkButton, {
+          showModal(modalDialog(
+            title = "Project Type",
+            radioButtons(ns("projectTypeInput"), "Please select project type:",
+                         choices = c("CDISC" = "CDISC", "Non-CDISC" = "Non-CDISC")),
+            footer = tagList(
+              modalButton("Cancel"),
+              actionButton(ns("confirmProjectType"), "Confirm")
+            )
+          ))
+        })
+        
+        observeEvent(input$confirmProjectType, {
+          removeModal()
+          prj <- input$projectTypeInput
+          if (is.null(prj)) {
+            showNotification("Please select a project type.", type = "warning")
+          } else {
+            check_project$projectType <- prj
+          }
+        })
         data <- eventReactive(input$submit, {
           req(input$file)
           
@@ -223,55 +252,39 @@ app <- init(
                         data_name = file_names[i]
             )
           }
+          if (check_project$projectType=="CDISC") {
+              td<<-within(td,{This_is_CDISC<-function(id){flagid<-"TRUE"}})
+              }
           datanames(td) <<- valid_file_names
           # Generate join_key object using function `generate_join_keys`
           join_keys(td)<<-generate_join_keys(SortInfo_list)
           td
         })
         data
-      })
+        mmpp<<-data
+      }
+      )
     }
   ),
-  modules = modules(
-    tm_front_page(
-      label = "App Info",
-      header_text = c("Info about input data source" = "This app enables the upload of data files from the local drive."),
-      tables = list(`NEST packages used in this demo app` = data.frame(
-        Packages = c(
-          "teal.modules.general",
-          "teal.modules.clinical",
-          "haven"
-        )
-      ))
-    ),
-    tm_data_table("Data Table"),
-    tm_variable_browser("Variable Browser"),
-    tm_t_summary(
-      label = "Demographic Table",
-      dataname = "ADSL",
-      arm_var =   choices_selected(c("ACTARM","ARM"), "ACTARM"),
-      summarize_vars = choices_selected(
-        c("SEX", "RACE", "AGE"),
-        selected = c("SEX", "AGE", "RACE")
+  modules = 
+
+  modules(
+  tm_front_page(
+    label = "App Info",
+    header_text = c("Info about input data source" = "This app enables the upload of data files from the local drive."),
+    tables = list(`NEST packages used in this demo app` = data.frame(
+      Packages = c(
+        "teal.modules.general",
+        "teal.modules.clinical",
+        "haven"
       )
-    ),
-    tm_t_events(
-      label = "AE by Term",
-      dataname = "ADAE",
-      arm_var = choices_selected(c("ACTARM","ARM"), "ACTARM"),
-      llt = choices_selected(c("AETERM", "AEDECOD"),c("AEDECOD")),
-      hlt = choices_selected(c("AEBODSYS", "AESOC"),c("AEBODSYS")),
-      add_total = TRUE,
-      event_type = "adverse event"
-    ),
-    tm_t_summary_by(
-      label = "VS Summary",
-      dataname = "ADVS",
-      arm_var = choices_selected(c("ACTARM","ARM"), "ACTARM"),
-      by_vars = choices_selected(c("PARAM", "AVISIT"),c("PARAM", "AVISIT")),
-      summarize_vars = choices_selected(c("AVAL", "CHG"),c("AVAL"))
-    )
-  )
+    ))
+  ),
+  tm_data_table("Data Table"),
+  tm_variable_browser("Variable Browser")
 )
+)
+
+
 
 shinyApp(app$ui, app$server)
