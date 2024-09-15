@@ -1,5 +1,5 @@
 
-convert_column_types1 <- function(data_path, ds_name) {
+convert_column_types <- function(data_path, ds_name) {
   # Get file extension
   file_ext <- tools::file_ext(data_path)
   
