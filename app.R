@@ -128,7 +128,7 @@ teal_data_module_ui <- function(id) {
   ns <- NS(id)
   fluidPage(
     mainPanel(
-      shiny::fileInput(ns("file"), "Upload a file", multiple = TRUE,
+      shiny::fileInput(ns("file"), "Upload datasets", multiple = TRUE,
                        accept = c(".csv", ".xlsx", ".xpt", ".sas7bdat")),
       actionButton(ns("checkButton"), "Check Project Type"),
       actionButton(ns("submit"), "Submit"),
