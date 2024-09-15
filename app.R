@@ -1,12 +1,8 @@
+
 library(teal)
-library(haven)
-library(teal.data)
 library(teal.modules.general)
 library(teal.modules.clinical)
-library(sparkline)
-library(readr)  # Reading CSV files
-library(readxl) # Reading Excel files
-library(Hmisc)
+
 options(shiny.useragg = FALSE)
 # File size set to 120MB
 options(shiny.maxRequestSize = 120*1024^2)
@@ -33,7 +29,7 @@ footer <- tags$p(style = "font-family: Arial, sans-serif; font-size: 13px;",
 #Import sort_key that attached with sas datasets
 import_sort_list <- function(file_path, sheet_name = "Sheet1", column_label = "Column_Name") {
   # Read the Excel file
-  SortInfo <- read_excel(file_path, sheet = sheet_name)
+  SortInfo <- readxl::read_excel(file_path, sheet = sheet_name)
   
   # Filter specific column
   SortInfo_srt <- subset(SortInfo, namelabel == column_label)
@@ -63,10 +59,11 @@ import_sort_list <- function(file_path, sheet_name = "Sheet1", column_label = "C
 }
 
 # To generate join_key objects
+# Similar to dynamically load modules, this would be based on a reactive `data()`
 generate_join_keys <- function(sort_list) {
   # Check if sort_list is "NOT UPLOADED"
   if (identical(sort_list, "NOT UPLOADED")) {
-    return(join_keys())
+    return(teal.data::join_keys())
   }
   # Convert vector names to lowercase for comparison
   names_lower <- tolower(names(sort_list))
@@ -75,216 +72,302 @@ generate_join_keys <- function(sort_list) {
   center_dataset <- if ("adsl" %in% names_lower) names(sort_list)[which(names_lower == "adsl")] else names(sort_list)[which(names_lower == "dm")]
   
   primary_keys <- lapply(names(sort_list), function(name) {
-    do.call(join_key, list(name, keys = sort_list[[name]]))
+    do.call(teal.data::join_key, list(name, keys = sort_list[[name]]))
   })
   
   foreign_keys <- lapply(setdiff(names(sort_list), center_dataset), function(name) {
-    do.call(join_key, list(center_dataset, name, keys = c("STUDYID", "USUBJID")))
+    do.call(teal.data::join_key, list(center_dataset, name, keys = c("STUDYID", "USUBJID")))
   })
   
   all_keys <- c(primary_keys, foreign_keys)
   
-  do.call(join_keys, all_keys)
+  do.call(teal.data::join_keys, all_keys)
+}
+# automatically obtain the required data name for a module from `data()@datanames`
+get_dsname_for_module <- function(type = c("DEMO","VS", "AE")) {
+  # Convert S4 datanames to lowercase for case-insensitive comparison
+  S4dsname<-data()@datanames
+  type <- match.arg(type)
+  
+  if (type == "VS") {
+    # Check for "advs" first
+    if ("advs" %in% tolower(S4dsname)) {
+      return(S4dsname[tolower(S4dsname) == "advs"])
+    }
+    
+    # Check for "vs" if "advs" is not found
+    if ("vs" %in% tolower(S4dsname)) {
+      return(S4dsname[tolower(S4dsname) == "vs"])
+    }
+  } else if (type == "AE") {
+    # Check for "adae" first
+    if ("adae" %in% tolower(S4dsname)) {
+      return(S4dsname[tolower(S4dsname) == "adae"])
+    }
+    
+    # Check for "ae" if "adae" is not found
+    if ("ae" %in% tolower(S4dsname)) {
+      return(S4dsname[tolower(S4dsname) == "ae"])
+    }
+  }else if (type == "DEMO") {
+    # Check for "adsl" first
+    if ("adsl" %in% tolower(S4dsname)) {
+      return(S4dsname[tolower(S4dsname) == "adsl"])
+    }
+    
+    # Check for "dm" if "adsl" is not found
+    if ("dm" %in% tolower(S4dsname)) {
+      return(S4dsname[tolower(S4dsname) == "dm"])
+    }
+  }
 }
 
-# cs_arm_var <-
-#   choices_selected(
-#     choices = variable_choices(ADSL, subset = c("ARM")),
-#     selected = "ARM"
-#   )
+########################################################################################
+# Set UI of `teal_data_module`
+teal_data_module_ui <- function(id) {
+  ns <- NS(id)
+  fluidPage(
+    mainPanel(
+      shiny::fileInput(ns("file"), "Upload a file", multiple = TRUE,
+                       accept = c(".csv", ".xlsx", ".xpt", ".sas7bdat")),
+      actionButton(ns("checkButton"), "Check Project Type"),
+      actionButton(ns("submit"), "Submit"),
+      # checkboxInput("checkbox", "CDISC Project(Valid SDTM/ADam", value = FALSE),
+      DT::dataTableOutput(ns("preview"))
+    ),
+    fluidRow(
+      column(12,
+             tags$footer(
+               'The supported file types for upload include ".csv", ".xlsx", ".xpt", and ".sas7bdat". Please note that do not upload data files with the same name across all types. For example: ["ae.xpt" & "ae.xpt"] or ["dm.xpt" & "dm.sas7bdat"] are invalid.',
+               style = "text-align: left; padding: 13px;")
+      )
+    )
+  )
+}
+# Set Server of `teal_data_module`
+teal_data_module_server <- function(id) {
+  moduleServer(id, function(input, output, session) {
+    ns <- session$ns
+    
+    # Create reactiveValues to store project type
+    check_project <- reactiveValues(projectType = NULL)
+    
+    # Handle the event reaction for project type
+    observeEvent(input$checkButton, {
+      showModal(modalDialog(
+        title = "Project Type",
+        radioButtons(ns("projectTypeInput"), "Please select project type:",
+                     choices = c("CDISC" = "CDISC", "Non-CDISC" = "Non-CDISC")),
+        footer = tagList(
+          modalButton("Cancel"),
+          actionButton(ns("confirmProjectType"), "Confirm")
+        )
+      ))
+    })
+    
+    observeEvent(input$confirmProjectType, {
+      removeModal()
+      prj <- input$projectTypeInput
+      if (is.null(prj)) {
+        showNotification("Please select a project type.", type = "warning")
+      } else {
+        check_project$projectType <- prj
+      }
+    })
+    data <- eventReactive(input$submit, {
+      req(input$file)
+      
+      file_paths <<- input$file$datapath
+      file_names <<- tools::file_path_sans_ext(input$file$name)
+      file_names <<- toupper(file_names)
+      
+      td<<-teal.data::teal_data()
+      
+      # Target SortInfo file
+      target_file <- "SORTINFO"
+      valid_file_names <- file_names[file_names != target_file]
+      # Find the index of the target file
+      SortInfo_index <- which(file_names == target_file)
+      if (length(SortInfo_index) == 0) {
+        showNotification("The specified file was not uploaded. Summary table won't be applied.", type = "warning")
+        SortInfo_path<-"NOT UPLOADED"
+        SortInfo_list<-"NOT UPLOADED"
+      }
+      else {
+        # Get the path of the target file
+        SortInfo_path <- file_paths[SortInfo_index]
+        
+        # Read the target file using function `import_sort_list`
+        SortInfo_list <- import_sort_list(SortInfo_path)
+      }
+      
+      for (i in seq_along(file_paths)) {
+        if (file_paths[i] == SortInfo_path) {
+          next  # Skip the target file
+        }
+        td<<-within(td,    
+                    {
+                      
+                      convert_column_types <- function(data_path, ds_name) {
+                        # Get file extension
+                        file_ext <- tools::file_ext(data_path)
+                        
+                        # Read data based on file extension
+                        df <- switch(
+                          file_ext,
+                          "csv" = readr::read_csv(data_path),
+                          "xlsx" = readxl::read_excel(data_path),
+                          "xpt" = haven::read_xpt(data_path),
+                          "sas7bdat" = haven::read_sas(data_path),
+                          stop("Please ensure that the uploaded file type is valid.")
+                        )
+                        
+                        # If "ACTARM" is empty, replace with "Acutal ARM is Null"
+                        if ("ACTARM" %in% names(df)) {
+                          df$ACTARM[is.na(df$ACTARM) | df$ACTARM == ""] <- "Acutal ARM is Null"
+                        }
+                        
+                        # Get column label
+                        col_labels <- teal.data::col_labels(df)
+                        # Get all column names
+                        column_names <- names(df)
+                        # Create an empty list to store columns that need to have their labels reset
+                        relabel_list <- list()
+                        
+                        # Iterate through each column in the DataFrame
+                        for (col in column_names) {
+                          # Get column label
+                          col_label <- col_labels[[col]]
+                          
+                          # Check various conditions
+                          if (is.character(df[[col]])) {
+                            if (col %in% c("STUDYID", "DOMAIN", "USUBJID", "SUBJID")) {
+                              next
+                            }
+                            else if (col_label %in% c("Specimen ID", "Group ID", "Sponsor-Defined Identifier", "Link ID", "Link Group ID", "Reference ID", "Dose Description")) {
+                              next
+                            }
+                            else if (grepl("Unit", col_label, ignore.case = TRUE) || grepl("Units", col_label, ignore.case = TRUE) || grepl("Duration", col_label, ignore.case = TRUE)) {
+                              next
+                            }
+                            else if (grepl("DTC$|DTM$|DUR$|ENTPT$|ORRES$|ORRESU$|ORNRLO$|ORNRHI$|STRESC$|STRESU$|STNRC$|STREFC$|STTPT$", col)) {
+                              next
+                            }
+                            else if (grepl("^COVAL", col)) {
+                              next
+                            }
+                            else if (grepl("^AVALC", col) || grepl("^BASEC", col)) {
+                              if (!grepl("Category", col_label, ignore.case = TRUE)) {
+                                next
+                              }
+                            }
+                            # If none of the conditions are met, convert to factor
+                            df[[col]] <- as.factor(df[[col]])
+                            # Add columns that need to have their labels reset to the list
+                            relabel_list[[col]] <- col_label
+                          }
+                        }
+                        
+                        # Use the col_relabel function to reset column labels
+                        df <- do.call(teal.data::col_relabel, c(list(df), relabel_list))
+                        return(df)
+                      }
+                      
+                      df_converted <- convert_column_types(data_path,ADSL)
+                      
+                      data_name<-convert_column_types(data_path,ds_name)
+                    },
+                    data_path = file_paths[i],
+                    ds_name = file_names[i],
+                    data_name = file_names[i]
+        )
+      }
+      if (check_project$projectType=="CDISC") {
+        td<<-within(td,{This_is_CDISC<-function(id){flagid<-"TRUE"}})
+      }
+      teal.data::datanames(td) <<- valid_file_names
+      # Generate join_key object using function `generate_join_keys`
+      teal.data::join_keys(td)<<-generate_join_keys(SortInfo_list)
+      td
+    })
+    data
+  }
+  )
+}
 
 ########################################################################################
 
-app <- init(
+app <- teal::init(
   title = build_app_title("TabulationViewer Demo App", nest_logo),
   header = header,
   footer = footer,
   data = teal_data_module(
-    ui = function(id) {
-      ns <- NS(id)
-      fluidPage(
-        mainPanel(
-          shiny::fileInput(ns("file"), "Upload a file", multiple = TRUE,
-                           accept = c(".csv", ".xlsx", ".xpt", ".sas7bdat")),
-          actionButton(ns("checkButton"), "Check Project Type"),
-          actionButton(ns("submit"), "Submit"),
-          # checkboxInput("checkbox", "CDISC Project(Valid SDTM/ADam", value = FALSE),
-          DT::dataTableOutput(ns("preview"))
-        ),
-        fluidRow(
-          column(12,
-                 tags$footer(
-                   'The supported file types for upload include ".csv", ".xlsx", ".xpt", and ".sas7bdat". Please note that do not upload data files with the same name across all types. For example: ["ae.xpt" & "ae.xpt"] or ["dm.xpt" & "dm.sas7bdat"] are invalid.',
-                   style = "text-align: left; padding: 13px;")
-          )
-        )
-      )
-    },
-    server = function(id) {
-      moduleServer(id, function(input, output, session) {
-        ns <- session$ns
-        
-      
-        # 创建 reactiveValues 存储项目类型
-        check_project <- reactiveValues(projectType = NULL)
-        
-        # 处理项目类型的事件反应
-        observeEvent(input$checkButton, {
-          showModal(modalDialog(
-            title = "Project Type",
-            radioButtons(ns("projectTypeInput"), "Please select project type:",
-                         choices = c("CDISC" = "CDISC", "Non-CDISC" = "Non-CDISC")),
-            footer = tagList(
-              modalButton("Cancel"),
-              actionButton(ns("confirmProjectType"), "Confirm")
-            )
-          ))
-        })
-        
-        observeEvent(input$confirmProjectType, {
-          removeModal()
-          prj <- input$projectTypeInput
-          if (is.null(prj)) {
-            showNotification("Please select a project type.", type = "warning")
-          } else {
-            check_project$projectType <- prj
-          }
-        })
-        data <- eventReactive(input$submit, {
-          req(input$file)
-          
-          file_paths <<- input$file$datapath
-          file_names <<- tools::file_path_sans_ext(input$file$name)
-          file_names <<- toupper(file_names)
-          
-          td<<-teal_data()
-          
-          # Target SortInfo file
-          target_file <- "SORTINFO"
-          valid_file_names <- file_names[file_names != target_file]
-          # Find the index of the target file
-          SortInfo_index <- which(file_names == target_file)
-          if (length(SortInfo_index) == 0) {
-            showNotification("The specified file was not uploaded. Summary table won't be applied.", type = "warning")
-            SortInfo_path<-"NOT UPLOADED"
-            SortInfo_list<-"NOT UPLOADED"
-          }
-          else {
-            # Get the path of the target file
-            SortInfo_path <- file_paths[SortInfo_index]
-            
-            # Read the target file using function `import_sort_list`
-            SortInfo_list <- import_sort_list(SortInfo_path)
-          }
-          
-          for (i in seq_along(file_paths)) {
-            if (file_paths[i] == SortInfo_path) {
-              next  # Skip the target file
-            }
-            td<<-within(td,    
-                        {
-                          convert_column_types <- function(data_path,ds_name) {
-                            
-                            # Get file extension
-                            file_ext <- tools::file_ext(data_path)
-                            # Read data based on file extension
-                            df <- switch(
-                              file_ext,
-                              "csv" = read_csv(data_path),
-                              "xlsx" = read_excel(data_path),
-                              "xpt" = read_xpt(data_path),
-                              "sas7bdat" = read_sas(data_path),
-                              stop("Please ensure that the uploaded file type is valid.")
-                            )
-                            if ("ACTARM" %in% names(df)) {
-                              # If "ds_name" is "ADSL" or "DM", filter rows where ARM is not empty
-                              # if (toupper(ds_name) %in% c("ADSL", "DM")) {
-                              #   df <- df[!is.na(df$ACTARM) & df$ACTARM != "", ]
-                              # }
-                              # If "ACTARM" is empty, replace with "Acutal ARM is Null"
-                              df$ACTARM[is.na(df$ACTARM) | df$ACTARM == ""] <- "Acutal ARM is Null"
-                            }
-                            # Get all column names
-                            column_names <- names(df)
-                            
-                            # Iterate over each column in the dataframe
-                            for (col in column_names) {
-                              # Get column label
-                              col_label <- label(df[[col]])
-                              
-                              # Check various conditions
-                              if (is.character(df[[col]])) {
-                                if (col %in% c("STUDYID", "DOMAIN", "USUBJID", "SUBJID")) {
-                                  next
-                                }
-                                else if (col_label %in% c("Specimen ID", "Group ID", "Sponsor-Defined Identifier", "Link ID", "Link Group ID", "Reference ID", "Dose Description")) {
-                                  next
-                                }
-                                else if (grepl("Unit", col_label, ignore.case = TRUE) || grepl("Units", col_label, ignore.case = TRUE) || grepl("Duration", col_label, ignore.case = TRUE)) {
-                                  next
-                                }
-                                else if (grepl("DTC$|DTM$|DUR$|ENTPT$|ORRES$|ORRESU$|ORNRLO$|ORNRHI$|STRESC$|STRESU$|STNRC$|STREFC$|STTPT$", col)) {
-                                  next
-                                }
-                                else if (grepl("^COVAL", col)) {
-                                  next
-                                }
-                                else if (grepl("^AVALC", col) || grepl("^BASEC", col)) {
-                                  if (!grepl("Category", col_label, ignore.case = TRUE)) {
-                                    next
-                                  }
-                                }
-                                # If none of the conditions are met, convert to factor
-                                df[[col]] <- as.factor(df[[col]])
-                                # Add label of each factor column back
-                                label(df[[col]]) <- col_label
-                              }
-                            }
-                            
-                            return(df)
-                          }
-                          
-                          data_name<-convert_column_types(data_path,ds_name)
-                          print(data_name)
-                        },
-                        data_path = file_paths[i],
-                        ds_name = file_names[i],
-                        data_name = file_names[i]
-            )
-          }
-          if (check_project$projectType=="CDISC") {
-              td<<-within(td,{This_is_CDISC<-function(id){flagid<-"TRUE"}})
-              }
-          datanames(td) <<- valid_file_names
-          # Generate join_key object using function `generate_join_keys`
-          join_keys(td)<<-generate_join_keys(SortInfo_list)
-          td
-        })
-        data
-        mmpp<<-data
-      }
-      )
-    }
+          ui = teal_data_module_ui,
+          server = teal_data_module_server),
+
+  filter = teal_slices(
+    count_type = "all",
+    teal_slice(dataname = "ADSL", varname = "SAFFL", selected = "Y"),
+    teal_slice(dataname = "ADVS", varname = "PARAMCD", selected = "PULSE"),
+    teal_slice(dataname = "ADAE", varname = "AESER", selected="N"),
+    teal_slice(dataname = "ADAE", varname = "AESEV", selected="MODERATE")
   ),
   modules = 
-
-  modules(
-  tm_front_page(
-    label = "App Info",
-    header_text = c("Info about input data source" = "This app enables the upload of data files from the local drive."),
-    tables = list(`NEST packages used in this demo app` = data.frame(
-      Packages = c(
-        "teal.modules.general",
-        "teal.modules.clinical",
-        "haven"
-      )
-    ))
-  ),
-  tm_data_table("Data Table"),
-  tm_variable_browser("Variable Browser")
+    modules(
+      tm_front_page(
+        label = "App Info",
+        header_text = c("Info about input data source" = "This app enables the upload of data files from the local drive."),
+        tables = list(`NEST packages used in this demo app` = data.frame(
+          Packages = c(
+            "teal.modules.general",
+            "teal.modules.clinical"
+          )
+        ))
+      ),
+      tm_data_table("Data Table"),
+      tm_variable_browser("Variable Browser"),
+      tm_t_summary(
+        label = "Demographic Table",
+        dataname = "ADSL",
+        arm_var = choices_selected(c("ACTARM","ARM","TRT01A"), "ARM"),
+        summarize_vars = choices_selected(c("SEX", "RACE", "AGE"),selected = c("SEX", "AGE", "RACE"))
+      ),
+      modules(
+        label = "Adverse Events",
+      # tm_t_events_summary(
+      #   label = "AE Summary",
+      #   dataname = "ADAE",
+      #   arm_var = choices_selected(c("ACTARM","ARM","TRT01A"), "ARM"),
+      #   flag_var_anl = choices_selected(ae_anl_vars,c("TMPFL_SER"),keep_order = TRUE),
+      #   # flag_var_aesi = choices_selected(aesi_vars,aesi_vars,keep_order = TRUE),
+      #   add_total = TRUE
+      # ),
+      tm_t_events(
+        label = "Adverse Event by SOC and PT",
+        dataname = "ADAE",
+        arm_var = choices_selected(c("ACTARM","ARM","TRT01A"), "ARM"),
+        llt = choices_selected(c("AETERM", "AEDECOD"), c("AEDECOD")),
+        hlt = choices_selected(c("AEBODSYS", "AESOC"), c("AEBODSYS")),
+        add_total = TRUE,
+        event_type = "adverse event"),
+        tm_t_events(
+          label = "Adverse Event by SOC and PT",
+          dataname = "ADAE",
+          arm_var = choices_selected(c("ACTARM","ARM","TRT01A"), "ARM"),
+          llt = choices_selected(c("AETERM", "AEDECOD"), c("AEDECOD")),
+          hlt = choices_selected(c("AEBODSYS", "AESOC"), c("AEBODSYS")),
+          add_total = TRUE,
+          event_type = "adverse event")
+      ),
+        tm_t_summary_by(
+          label = "Vital Signs Summary",
+          dataname = "ADVS",
+          arm_var = choices_selected(c("ACTARM","ARM","TRT01A"), "ARM"),
+          by_vars = choices_selected(c("PARAM", "AVISIT"),c("PARAM", "AVISIT"),fixed = TRUE),
+          summarize_vars = choices_selected(c("AVAL", "CHG"), c("AVAL")),
+          paramcd = NULL)
+  )
 )
-)
-
 
 
 shinyApp(app$ui, app$server)
