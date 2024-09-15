@@ -138,8 +138,9 @@ teal_data_module_ui <- function(id) {
     fluidRow(
       column(12,
              tags$footer(
-               'The supported file types for upload include ".csv", ".xlsx", ".xpt", and ".sas7bdat". Please note that do not upload data files with the same name across all types. For example: ["ae.xpt" & "ae.xpt"] or ["dm.xpt" & "dm.sas7bdat"] are invalid.',
-               style = "text-align: left; padding: 13px;")
+               'The supported file types for upload include ".csv", ".xlsx", ".xpt", and ".sas7bdat". Please note that do not upload data files with the same name across all types. For example: ["ae.xpt" & "ae.xpt"] or ["dm.xpt" & "dm.sas7bdat"] are invalid.
+               If you want to load teal.modules.clinical, please use valid CDISC datasets. I have prepared some example datasets in *xpt, *sas7bdat formats for you to experience this app.',
+               style = "text-align: left; padding: 15px;")
       )
     )
   )
