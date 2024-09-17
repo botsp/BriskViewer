@@ -21,8 +21,7 @@ header <- tags$span(
 )
 
 footer <- tags$p(style = "font-family: Arial, sans-serif; font-size: 13px;",
-                 "This demo app is developed from the NEST Team at Roche/Genentech.
-        For more information, please contact the developer: progsupp89@gmail.com"
+                 "This demo application is based on the development work of the NEST team at Roche/Genentech. For more information, please contact the developer at: progsupp89@gmail.com"
 )
 ########################################################################################
 # Self-defined function
