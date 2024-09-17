@@ -325,7 +325,8 @@ app <- teal::init(
           )
         ))
       ),
-      tm_data_table("Data Table"),
+      tm_data_table("Data Listing",
+                    dt_options = list(searching = TRUE, pageLength = 30, lengthMenu = c(5, 15, 30, 100), scrollX = TRUE)),
       tm_variable_browser("Variable Browser"),
       tm_t_summary(
         label = "Demographic Table",
