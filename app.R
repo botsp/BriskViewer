@@ -12,7 +12,7 @@ nest_logo <- "https://raw.githubusercontent.com/insightsengineering/hex-stickers
 
 header <- tags$span(
   style = "display: flex; align-items: center; justify-content: space-between; margin: 10px 0 10px 0;",
-  tags$span("TabulationViewer Demo App", style = "font-size: 25px;"),
+  tags$span("TabulationViewer App", style = "font-size: 25px;"),
   tags$span(
     style = "display: flex; align-items: center;",
     tags$img(src = nest_logo, alt = "NEST logo", height = "45px", style = "margin-right:10px;"),
@@ -21,7 +21,7 @@ header <- tags$span(
 )
 
 footer <- tags$p(style = "font-family: Arial, sans-serif; font-size: 13px;",
-                 "This demo application is based on the development work of the NEST team at Roche/Genentech. For more information, please contact the developer at: progsupp89@gmail.com"
+                 "This application is based on the development work of the NEST team at Roche/Genentech. For more information, please contact the developer at: progsupp89@gmail.com"
 )
 ########################################################################################
 # Self-defined function
@@ -125,21 +125,39 @@ get_dsname_for_module <- function(type = c("DEMO","VS", "AE")) {
 # Set UI of `teal_data_module`
 teal_data_module_ui <- function(id) {
   ns <- NS(id)
+  
   fluidPage(
-    mainPanel(
-      shiny::fileInput(ns("file"), "Upload datasets", multiple = TRUE,
-                       accept = c(".csv", ".xlsx", ".xpt", ".sas7bdat")),
-      actionButton(ns("checkButton"), "Check Project Type"),
-      actionButton(ns("submit"), "Submit"),
-      # checkboxInput("checkbox", "CDISC Project(Valid SDTM/ADam", value = FALSE),
-      DT::dataTableOutput(ns("preview"))
+    # 引用自定义 CSS 文件
+    #includeCSS("www/styles.css"),
+    # 占据一定的高度空间，使 mainPanel 下移
+    fluidRow(
+      column(12, style = "height: 100px;")
     ),
+    fluidRow(
+      column(4),
+      column(6, 
+             mainPanel(
+               # 应用自定义样式的 fileInput
+               tags$div(
+                 class = "custom-file-input",
+                 shiny::fileInput(ns("file"), 
+                                  label = tags$div(class = "custom-file-input-label", "Upload datasets"), 
+                                  multiple = TRUE, 
+                                  accept = c(".csv", ".xlsx", ".xpt", ".sas7bdat"))
+               ),
+               actionButton(ns("checkButton"), "Check Project Type"),
+               actionButton(ns("submit"), "Submit"),
+               DT::dataTableOutput(ns("preview"))
+             )
+      ),
+      column(3)
+    ),   
     fluidRow(
       column(12,
              tags$footer(
                'The supported file types for upload include ".csv", ".xlsx", ".xpt", and ".sas7bdat". Please note that do not upload data files with the same name across all types. For example: ["ae.xpt" & "ae.xpt"] or ["dm.xpt" & "dm.sas7bdat"] are invalid.
                If you want to load teal.modules.clinical, please use valid CDISC datasets. I have prepared some example datasets in *xpt, *sas7bdat formats for you to experience this app.',
-               style = "text-align: left; padding: 15px;")
+               style = "text-align: left; padding: 15px;"), style = "height: 225px;"
       )
     )
   )
@@ -298,13 +316,13 @@ teal_data_module_server <- function(id) {
 ########################################################################################
 
 app <- teal::init(
-  title = build_app_title("TabulationViewer Demo App", nest_logo),
+  title = build_app_title("TabulationViewer", nest_logo),
   header = header,
   footer = footer,
   data = teal_data_module(
-          ui = teal_data_module_ui,
-          server = teal_data_module_server),
-
+    ui = teal_data_module_ui,
+    server = teal_data_module_server),
+  
   filter = teal_slices(
     count_type = "all",
     teal_slice(dataname = "ADSL", varname = "SAFFL", selected = "Y"),
@@ -317,7 +335,7 @@ app <- teal::init(
       tm_front_page(
         label = "App Info",
         header_text = c("Info about input data source" = "This app enables the upload of data files from the local drive."),
-        tables = list(`NEST packages used in this demo app` = data.frame(
+        tables = list(`NEST packages used in this TabulationViewer app` = data.frame(
           Packages = c(
             "teal.modules.general",
             "teal.modules.clinical"
@@ -335,22 +353,22 @@ app <- teal::init(
       ),
       modules(
         label = "Adverse Events",
-      # tm_t_events_summary(
-      #   label = "AE Summary",
-      #   dataname = "ADAE",
-      #   arm_var = choices_selected(c("ACTARM","ARM","TRT01A"), "ARM"),
-      #   flag_var_anl = choices_selected(ae_anl_vars,c("TMPFL_SER"),keep_order = TRUE),
-      #   # flag_var_aesi = choices_selected(aesi_vars,aesi_vars,keep_order = TRUE),
-      #   add_total = TRUE
-      # ),
-      tm_t_events(
-        label = "Adverse Event by SOC and PT",
-        dataname = "ADAE",
-        arm_var = choices_selected(c("ACTARM","ARM","TRT01A"), "ARM"),
-        llt = choices_selected(c("AETERM", "AEDECOD"), c("AEDECOD")),
-        hlt = choices_selected(c("AEBODSYS", "AESOC"), c("AEBODSYS")),
-        add_total = TRUE,
-        event_type = "adverse event"),
+        # tm_t_events_summary(
+        #   label = "AE Summary",
+        #   dataname = "ADAE",
+        #   arm_var = choices_selected(c("ACTARM","ARM","TRT01A"), "ARM"),
+        #   flag_var_anl = choices_selected(ae_anl_vars,c("TMPFL_SER"),keep_order = TRUE),
+        #   # flag_var_aesi = choices_selected(aesi_vars,aesi_vars,keep_order = TRUE),
+        #   add_total = TRUE
+        # ),
+        tm_t_events(
+          label = "Adverse Event by SOC and PT",
+          dataname = "ADAE",
+          arm_var = choices_selected(c("ACTARM","ARM","TRT01A"), "ARM"),
+          llt = choices_selected(c("AETERM", "AEDECOD"), c("AEDECOD")),
+          hlt = choices_selected(c("AEBODSYS", "AESOC"), c("AEBODSYS")),
+          add_total = TRUE,
+          event_type = "adverse event"),
         tm_t_events(
           label = "Adverse Event by SOC and PT",
           dataname = "ADAE",
@@ -360,14 +378,14 @@ app <- teal::init(
           add_total = TRUE,
           event_type = "adverse event")
       ),
-        tm_t_summary_by(
-          label = "Vital Signs Summary",
-          dataname = "ADVS",
-          arm_var = choices_selected(c("ACTARM","ARM","TRT01A"), "ARM"),
-          by_vars = choices_selected(c("PARAM", "AVISIT"),c("PARAM", "AVISIT"),fixed = TRUE),
-          summarize_vars = choices_selected(c("AVAL", "CHG"), c("AVAL")),
-          paramcd = NULL)
-  )
+      tm_t_summary_by(
+        label = "Vital Signs Summary",
+        dataname = "ADVS",
+        arm_var = choices_selected(c("ACTARM","ARM","TRT01A"), "ARM"),
+        by_vars = choices_selected(c("PARAM", "AVISIT"),c("PARAM", "AVISIT"),fixed = TRUE),
+        summarize_vars = choices_selected(c("AVAL", "CHG"), c("AVAL")),
+        paramcd = NULL)
+    )
 )
 
 
