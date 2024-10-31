@@ -12,11 +12,11 @@ nest_logo <- "https://raw.githubusercontent.com/insightsengineering/hex-stickers
 
 header <- tags$span(
   style = "display: flex; align-items: center; justify-content: space-between; margin: 10px 0 10px 0;",
-  tags$span("TabulationViewer App", style = "font-size: 25px;"),
+  tags$span("BriskViewer App", style = "font-size: 25px;"),
   tags$span(
     style = "display: flex; align-items: center;",
     tags$img(src = nest_logo, alt = "NEST logo", height = "45px", style = "margin-right:10px;"),
-    tags$span(style = "font-size: 24px;", "NEST @TabViewer")
+    tags$span(style = "font-size: 24px;", "NEST @BriskViewer")
   )
 )
 
@@ -128,40 +128,44 @@ teal_data_module_ui <- function(id) {
   
   fluidPage(
     # 引用自定义 CSS 文件
-    #includeCSS("www/styles.css"),
-    # 占据一定的高度空间，使 mainPanel 下移
-    fluidRow(
-      column(12, style = "height: 100px;")
-    ),
-    fluidRow(
-      column(4),
-      column(6, 
-             mainPanel(
-               # 应用自定义样式的 fileInput
-               tags$div(
-                 class = "custom-file-input",
-                 shiny::fileInput(ns("file"), 
-                                  label = tags$div(class = "custom-file-input-label", "Upload datasets"), 
-                                  multiple = TRUE, 
-                                  accept = c(".csv", ".xlsx", ".xpt", ".sas7bdat"))
-               ),
-               actionButton(ns("checkButton"), "Check Project Type"),
-               actionButton(ns("submit"), "Submit"),
-               DT::dataTableOutput(ns("preview"))
-             )
+    includeCSS("www/styles.css"),
+    
+    # 主内容区域
+    div(
+      class = "main-content",
+      fluidRow(
+        column(12, style = "height: 20px;")  # 调整高度
       ),
-      column(3)
-    ),   
-    fluidRow(
-      column(12,
-             tags$footer(
-               'The supported file types for upload include ".csv", ".xlsx", ".xpt", and ".sas7bdat". Please note that do not upload data files with the same name across all types. For example: ["ae.xpt" & "ae.xpt"] or ["dm.xpt" & "dm.sas7bdat"] are invalid.
-               If you want to load teal.modules.clinical, please use valid CDISC datasets. I have prepared some example datasets in *xpt, *sas7bdat formats for you to experience this app.',
-               style = "text-align: left; padding: 15px;"), style = "height: 225px;"
+      fluidRow(
+        column(4),
+        column(6, 
+               mainPanel(
+                 # 应用自定义样式的 fileInput
+                 tags$div(
+                   class = "custom-file-input",
+                   shiny::fileInput(ns("file"), 
+                                    label = tags$div(class = "custom-file-input-label", "Upload datasets"), 
+                                    multiple = TRUE, 
+                                    accept = c(".csv", ".xlsx", ".xpt", ".sas7bdat"))
+                 ),
+                 div(
+                   class = "button-group",
+                   actionButton(ns("checkButton"), "Check Project Type", class = "btn-primary"),
+                   actionButton(ns("submit"), "Submit", class = "btn-secondary")
+                 ),
+                 DT::dataTableOutput(ns("preview"))
+               )
+        ),
+        column(3)
+      ),
+      fluidRow(
+        column(12, style = "height: 150px;")  # 调整高度
       )
     )
   )
 }
+
+
 # Set Server of `teal_data_module`
 teal_data_module_server <- function(id) {
   moduleServer(id, function(input, output, session) {
@@ -316,7 +320,7 @@ teal_data_module_server <- function(id) {
 ########################################################################################
 
 app <- teal::init(
-  title = build_app_title("TabulationViewer", nest_logo),
+  title = build_app_title("BriskViewer", nest_logo),
   header = header,
   footer = footer,
   data = teal_data_module(
@@ -335,7 +339,7 @@ app <- teal::init(
       tm_front_page(
         label = "App Info",
         header_text = c("Info about input data source" = "This app enables the upload of data files from the local drive."),
-        tables = list(`NEST packages used in this TabulationViewer app` = data.frame(
+        tables = list(`NEST packages used in this BriskViewer app` = data.frame(
           Packages = c(
             "teal.modules.general",
             "teal.modules.clinical"
