@@ -2,6 +2,7 @@
 library(teal)
 library(teal.modules.general)
 library(teal.modules.clinical)
+library(shinyWidgets)
 
 options(shiny.useragg = FALSE)
 # File size set to 120MB
@@ -20,8 +21,12 @@ header <- tags$span(
   )
 )
 
-footer <- tags$p(style = "font-family: Arial, sans-serif; font-size: 13px;",
-                 "This application is based on the development work of the NEST team at Roche/Genentech. For more information, please contact the developer at: progsupp89@gmail.com"
+footer <- tags$p(
+  style = "font-family: Arial, sans-serif; font-size: 13px;",
+  "This application is built upon the teal package and thanks to the achievement of the NEST and teal team.",
+  "Check out the repo on ",
+  tags$a(href = "https://github.com/botsp/BriskViewer", "GitHub", target = "_blank"),
+  "."
 )
 ########################################################################################
 # Self-defined function
@@ -127,25 +132,26 @@ teal_data_module_ui <- function(id) {
   ns <- NS(id)
   
   fluidPage(
-    # 引用自定义 CSS 文件
+    # Include CSS file
     includeCSS("www/styles.css"),
-    
-    # 主内容区域
+
     div(
       class = "main-content",
       fluidRow(
-        column(12, style = "height: 20px;")  # 调整高度
+        column(12, style = "height: 150px;")  # Adjust height
       ),
       fluidRow(
         column(4),
         column(6, 
                mainPanel(
-                 # 应用自定义样式的 fileInput
+                 # Apply CSS to fileInput
                  tags$div(
                    class = "custom-file-input",
                    shiny::fileInput(ns("file"), 
-                                    label = tags$div(class = "custom-file-input-label", "Upload datasets"), 
+                                    label = tags$div(class = "custom-file-input-label", ""), 
                                     multiple = TRUE, 
+                                    width = "1550px",
+                                    buttonLabel ="Upload datasets",
                                     accept = c(".csv", ".xlsx", ".xpt", ".sas7bdat"))
                  ),
                  div(
@@ -159,8 +165,9 @@ teal_data_module_ui <- function(id) {
         column(3)
       ),
       fluidRow(
-        column(12, style = "height: 150px;")  # 调整高度
-      )
+        column(12, style = "height: 185px;")  # Adjust height
+      ),
+      
     )
   )
 }
