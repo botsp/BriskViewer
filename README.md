@@ -8,7 +8,7 @@ This app is designed to empower users, providing them with the tools they need t
 
 ### Problems solved:
 Based on teal_data_module, implemented dynamic data upload, supports multiple formats of data files("*.csv, *.xlsx, *.xpt, and *.sas7bdat");
-Developed a function to reprocess data when importing CDISC datasets from external sources to **comply with the valid S4 object** required by teal.modules.clinical, such as adding join_keys() from metadata.
+Developed a function to reprocess data when importing CDISC datasets from external sources to **comply with the valid S4 object** required by `teal.modules.clinical`, such as adding join_keys() from metadata.
 
 ### Future Goals:
 - Perform more comprehensive processing on datasets uploaded from local sources to adapt them for `teal.modules.clinical`.
