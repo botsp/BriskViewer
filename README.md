@@ -17,8 +17,8 @@ Developed a function to reprocess data when importing CDISC datasets from extern
 - Add more summary modules;
 - Enable user interaction, allowing for datapoint highlighting;
 - Incorporate a Patient Profile feature.
-- R code optimization
-- Enhance page UI design
+- R code optimization;
+- Enhance page UI design.
 
 Thanks to the `teal` team for their great work and for inspiring my ongoing exploration and learning in this field. The core functionalities of this app are all developed based on the `teal` package; I merely learned how to use this package.
 
