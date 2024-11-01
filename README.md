@@ -2,7 +2,7 @@ Phase I clinical trials typically focus on Safety Analysis and are usually of sh
 
 ### This app aims to:
 - Allow users to upload various types of data independently from local.
-- Provide straightforward data insight features. With this app, users can quickly generate data insights, helping them to understand and interpret their data more effectively.
+- Provide straightforward data insight features. With this app, users can quickly generate data insights, helping them to understand and interpret the data more effectively.
 
 This app is designed to empower users, providing them with the tools they need to effectively manage and understand their data in Phase I clinical trials. By reducing wait times and simplifying data analysis, we hope to make the process of clinical trials more efficient and productive.
 
