@@ -31,4 +31,4 @@ Thanks to the `teal` team for their great work and for inspiring my ongoing expl
 
 ![BriskViewer_Demonstration_01Nov2024](https://github.com/user-attachments/assets/233e18c6-cf66-43ed-bebb-784cd969b2a5)
 
-[video Demo]( https://drive.google.com/file/d/1p2xS4vLFOQ5JZF8zFA2NBX9JwgyHSPoC/view?usp=sharing)
+[Video Demo]( https://drive.google.com/file/d/1p2xS4vLFOQ5JZF8zFA2NBX9JwgyHSPoC/view?usp=sharing)
