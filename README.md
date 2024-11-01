@@ -1,4 +1,6 @@
-Phase I clinical trials typically focus on Safety Analysis and are usually of short duration. Researchers, such as data managers and analysts, often need to promptly grasp the status of data. However, the process from SDTM to report can still be time-consuming. Recognizing this need, this app is designed to streamline this process and provide immediate insights.
+Phase I clinical trials typically focus on Safety Analysis and are usually of short duration. Researchers, such as data managers and analysts, often need to promptly grasp the status of data. However, the process from SDTM to report can still be time-consuming. Recognizing this need, this app is designed to streamline this process and provide immediate insights. 
+
+---
 
 ### This app aims to:
 - Allow users to upload various types of data independently from local.
@@ -20,7 +22,9 @@ Developed a function to reprocess data when importing CDISC datasets from extern
 
 Thanks to the `teal` team for their great work and for inspiring my ongoing exploration and learning in this field. The core functionalities of this app are all developed based on the `teal` package; I merely learned how to use this package.
 
-Notes:
+---
+
+### Notes:
 - If you want to load `teal.modules.clinical`, please use valid CDISC datasets. I have prepared some example datasets in *xpt, *sas7bdat formats for you to experience this app.
 - The initial loading of this app may take approximately 5-10 seconds. The speed of data upload depends on the file size. Once the data is successfully uploaded, the response time for data operations within the app is very fast, thanks to the `teal` package.
 - This app does not store the uploaded data, but it is not recommended to upload sensitive project data.
