@@ -7,7 +7,7 @@ Phase I clinical trials typically focus on Safety Analysis and are usually of sh
 This app is designed to empower users, providing them with the tools they need to effectively manage and understand their data in Phase I clinical trials. By reducing wait times and simplifying data analysis, we hope to make the process of clinical trials more efficient and productive.
 
 ### Problems solved:
-Based on teal_data_module, implemented dynamic data upload, supports multiple formats of data files("*.csv, *.xlsx, *.xpt, and *.sas7bdat");
+Based on `teal_data_module`, implemented dynamic data upload, supports multiple formats of data files("*.csv, *.xlsx, *.xpt, and *.sas7bdat");
 Developed a function to reprocess data when importing CDISC datasets from external sources to **comply with the valid S4 object** required by `teal.modules.clinical`, such as adding join_keys() from metadata.
 
 ### Future Goals:
@@ -18,11 +18,11 @@ Developed a function to reprocess data when importing CDISC datasets from extern
 - R code optimization
 - Enhance page UI design
 
-Thanks to the teal team for their great work and for inspiring my ongoing exploration and learning in this field. The core functionalities of this app are all developed based on the teal package; I merely learned how to use this package.
+Thanks to the `teal` team for their great work and for inspiring my ongoing exploration and learning in this field. The core functionalities of this app are all developed based on the `teal` package; I merely learned how to use this package.
 
 Notes:
 - If you want to load `teal.modules.clinical`, please use valid CDISC datasets. I have prepared some example datasets in *xpt, *sas7bdat formats for you to experience this app.
-- The initial loading of this app may take approximately 5-10 seconds. The speed of data upload depends on the file size. Once the data is successfully uploaded, the response time for data operations within the app is very fast, thanks to the teal package.
+- The initial loading of this app may take approximately 5-10 seconds. The speed of data upload depends on the file size. Once the data is successfully uploaded, the response time for data operations within the app is very fast, thanks to the `teal` package.
 - This app does not store the uploaded data, but it is not recommended to upload sensitive project data.
 
 ![BriskViewer_Demonstration_01Nov2024](https://github.com/user-attachments/assets/233e18c6-cf66-43ed-bebb-784cd969b2a5)
