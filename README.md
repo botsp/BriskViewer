@@ -24,4 +24,10 @@ Notes:
 - The initial loading of this app may take approximately 5-10 seconds. The speed of data upload depends on the file size. Once the data is successfully uploaded, the response time for data operations within the app is very fast, thanks to the teal package.
 - This app does not store the uploaded data, but it is not recommended to upload sensitive project data.
 
-Screen Recording of Demonstration: https://drive.google.com/file/d/1pT6Z52GM36fEdA7HqsIxpqxSpAOVaInm/view
+![BriskViewer_Demonstration_01Nov2024](https://github.com/user-attachments/assets/233e18c6-cf66-43ed-bebb-784cd969b2a5)
+
+[Vedio Recording of Demonstration]( https://drive.google.com/file/d/1p2xS4vLFOQ5JZF8zFA2NBX9JwgyHSPoC/view?usp=sharing)
+
+
+
+
