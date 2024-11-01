@@ -23,3 +23,5 @@ Notes:
 - If you want to load `teal.modules.clinical`, please use valid CDISC datasets. I have prepared some example datasets in *xpt, *sas7bdat formats for you to experience this app.
 - The initial loading of this app may take approximately 5-10 seconds. The speed of data upload depends on the file size. Once the data is successfully uploaded, the response time for data operations within the app is very fast, thanks to the teal package.
 - This app does not store the uploaded data, but it is not recommended to upload sensitive project data.
+
+Screen Recording of Demonstration: https://drive.google.com/file/d/1pT6Z52GM36fEdA7HqsIxpqxSpAOVaInm/view
